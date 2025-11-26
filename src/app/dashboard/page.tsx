@@ -97,7 +97,9 @@ interface Admin {
 export default function Dashboard() {
   const router = useRouter();
   const [showCreatePost, setShowCreatePost] = useState(false);
-  const [activeTab, setActiveTab] = useState<"posts" | "events" | "profile">("posts");
+  const [activeTab, setActiveTab] = useState<"posts" | "events" | "profile">(
+    "posts"
+  );
   const [posts, setPosts] = useState<Post[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [comments, setComments] = useState<Record<string, Comment[]>>({});
@@ -105,13 +107,14 @@ export default function Dashboard() {
   const [expandedPost, setExpandedPost] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<User | Admin | null>(null);
-  
+
   // Search and filter states
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTag, setSelectedTag] = useState<string>("all");
   const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
   const [eventSearchQuery, setEventSearchQuery] = useState("");
-  const [eventDepartmentFilter, setEventDepartmentFilter] = useState<string>("all");
+  const [eventDepartmentFilter, setEventDepartmentFilter] =
+    useState<string>("all");
 
   useEffect(() => {
     fetchPosts();
@@ -307,32 +310,34 @@ export default function Dashboard() {
 
   // Filter posts based on search and filters
   const filteredPosts = posts.filter((post) => {
-    const matchesSearch = 
+    const matchesSearch =
       post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
       post.author?.name.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesTag = 
-      selectedTag === "all" || 
-      (post.tags && post.tags.includes(selectedTag));
-    
-    const matchesDepartment = 
-      selectedDepartment === "all" || 
+
+    const matchesTag =
+      selectedTag === "all" || (post.tags && post.tags.includes(selectedTag));
+
+    const matchesDepartment =
+      selectedDepartment === "all" ||
       post.author?.department === selectedDepartment;
-    
+
     return matchesSearch && matchesTag && matchesDepartment;
   });
 
   // Filter events based on search and filters
   const filteredEvents = events.filter((event) => {
-    const matchesSearch = 
+    const matchesSearch =
       event.title.toLowerCase().includes(eventSearchQuery.toLowerCase()) ||
-      event.description.toLowerCase().includes(eventSearchQuery.toLowerCase()) ||
-      (event.location && event.location.toLowerCase().includes(eventSearchQuery.toLowerCase()));
-    
-    const matchesDepartment = 
-      eventDepartmentFilter === "all" || 
+      event.description
+        .toLowerCase()
+        .includes(eventSearchQuery.toLowerCase()) ||
+      (event.location &&
+        event.location.toLowerCase().includes(eventSearchQuery.toLowerCase()));
+
+    const matchesDepartment =
+      eventDepartmentFilter === "all" ||
       event.department === eventDepartmentFilter;
-    
+
     return matchesSearch && matchesDepartment;
   });
 
@@ -437,8 +442,12 @@ export default function Dashboard() {
                           </span>
                         </div>
                         <div>
-                          <h3 className="text-xl font-semibold">{currentUser.name}</h3>
-                          <p className="text-muted-foreground">{currentUser.email}</p>
+                          <h3 className="text-xl font-semibold">
+                            {currentUser.name}
+                          </h3>
+                          <p className="text-muted-foreground">
+                            {currentUser.email}
+                          </p>
                         </div>
                       </div>
 
@@ -446,38 +455,61 @@ export default function Dashboard() {
 
                       {/* Basic Information */}
                       <div className="space-y-4">
-                        <h4 className="font-semibold text-lg">Basic Information</h4>
+                        <h4 className="font-semibold text-lg">
+                          Basic Information
+                        </h4>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <p className="text-sm text-muted-foreground">Name</p>
+                            <p className="text-sm text-muted-foreground">
+                              Name
+                            </p>
                             <p className="font-medium">{currentUser.name}</p>
                           </div>
                           <div>
-                            <p className="text-sm text-muted-foreground">Email</p>
+                            <p className="text-sm text-muted-foreground">
+                              Email
+                            </p>
                             <p className="font-medium">{currentUser.email}</p>
                           </div>
                           {currentUser.department && (
                             <div>
-                              <p className="text-sm text-muted-foreground">Department</p>
-                              <p className="font-medium">{currentUser.department}</p>
+                              <p className="text-sm text-muted-foreground">
+                                Department
+                              </p>
+                              <p className="font-medium">
+                                {currentUser.department}
+                              </p>
                             </div>
                           )}
                           {"year" in currentUser && currentUser.year && (
                             <div>
-                              <p className="text-sm text-muted-foreground">Year</p>
-                              <p className="font-medium">Year {currentUser.year}</p>
+                              <p className="text-sm text-muted-foreground">
+                                Year
+                              </p>
+                              <p className="font-medium">
+                                Year {currentUser.year}
+                              </p>
                             </div>
                           )}
-                          {"designation" in currentUser && currentUser.designation && (
-                            <div>
-                              <p className="text-sm text-muted-foreground">Designation</p>
-                              <p className="font-medium">{currentUser.designation}</p>
-                            </div>
-                          )}
+                          {"designation" in currentUser &&
+                            currentUser.designation && (
+                              <div>
+                                <p className="text-sm text-muted-foreground">
+                                  Designation
+                                </p>
+                                <p className="font-medium">
+                                  {currentUser.designation}
+                                </p>
+                              </div>
+                            )}
                           <div>
-                            <p className="text-sm text-muted-foreground">Member Since</p>
+                            <p className="text-sm text-muted-foreground">
+                              Member Since
+                            </p>
                             <p className="font-medium">
-                              {new Date(currentUser.createdAt).toLocaleDateString()}
+                              {new Date(
+                                currentUser.createdAt
+                              ).toLocaleDateString()}
                             </p>
                           </div>
                         </div>
@@ -489,30 +521,36 @@ export default function Dashboard() {
                           <Separator />
                           <div>
                             <h4 className="font-semibold text-lg mb-2">Bio</h4>
-                            <p className="text-muted-foreground">{currentUser.bio}</p>
+                            <p className="text-muted-foreground">
+                              {currentUser.bio}
+                            </p>
                           </div>
                         </>
                       )}
 
                       {/* Interests Section */}
-                      {"interests" in currentUser && currentUser.interests && currentUser.interests.length > 0 && (
-                        <>
-                          <Separator />
-                          <div>
-                            <h4 className="font-semibold text-lg mb-3">Interests</h4>
-                            <div className="flex flex-wrap gap-2">
-                              {currentUser.interests.map((interest, idx) => (
-                                <span
-                                  key={idx}
-                                  className="px-3 py-1 rounded-full bg-primary/10 text-primary text-sm"
-                                >
-                                  {interest}
-                                </span>
-                              ))}
+                      {"interests" in currentUser &&
+                        currentUser.interests &&
+                        currentUser.interests.length > 0 && (
+                          <>
+                            <Separator />
+                            <div>
+                              <h4 className="font-semibold text-lg mb-3">
+                                Interests
+                              </h4>
+                              <div className="flex flex-wrap gap-2">
+                                {currentUser.interests.map((interest, idx) => (
+                                  <span
+                                    key={idx}
+                                    className="px-3 py-1 rounded-full bg-primary/10 text-primary text-sm"
+                                  >
+                                    {interest}
+                                  </span>
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                        </>
-                      )}
+                          </>
+                        )}
 
                       {/* Activity Stats */}
                       <Separator />
@@ -521,23 +559,42 @@ export default function Dashboard() {
                         <div className="grid grid-cols-3 gap-4 text-center">
                           <div className="p-4 bg-gray-50 rounded-lg">
                             <div className="text-2xl font-bold text-primary">
-                              {posts.filter(p => p.author?._id === currentUserId).length}
+                              {
+                                posts.filter(
+                                  (p) => p.author?._id === currentUserId
+                                ).length
+                              }
                             </div>
-                            <div className="text-sm text-muted-foreground">Posts</div>
+                            <div className="text-sm text-muted-foreground">
+                              Posts
+                            </div>
                           </div>
                           <div className="p-4 bg-gray-50 rounded-lg">
                             <div className="text-2xl font-bold text-primary">
-                              {posts.reduce((acc, post) => 
-                                acc + (post.likes.includes(currentUserId || "") ? 1 : 0), 0
+                              {posts.reduce(
+                                (acc, post) =>
+                                  acc +
+                                  (post.likes.includes(currentUserId || "")
+                                    ? 1
+                                    : 0),
+                                0
                               )}
                             </div>
-                            <div className="text-sm text-muted-foreground">Likes Given</div>
+                            <div className="text-sm text-muted-foreground">
+                              Likes Given
+                            </div>
                           </div>
                           <div className="p-4 bg-gray-50 rounded-lg">
                             <div className="text-2xl font-bold text-primary">
-                              {events.filter(e => e.rsvps.includes(currentUserId || "")).length}
+                              {
+                                events.filter((e) =>
+                                  e.rsvps.includes(currentUserId || "")
+                                ).length
+                              }
                             </div>
-                            <div className="text-sm text-muted-foreground">Events RSVP</div>
+                            <div className="text-sm text-muted-foreground">
+                              Events RSVP
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -598,7 +655,9 @@ export default function Dashboard() {
                         {/* Department Filter */}
                         <select
                           value={selectedDepartment}
-                          onChange={(e) => setSelectedDepartment(e.target.value)}
+                          onChange={(e) =>
+                            setSelectedDepartment(e.target.value)
+                          }
                           className="px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                         >
                           <option value="all">All Departments</option>
@@ -610,7 +669,9 @@ export default function Dashboard() {
                         </select>
 
                         {/* Clear Filters */}
-                        {(searchQuery || selectedTag !== "all" || selectedDepartment !== "all") && (
+                        {(searchQuery ||
+                          selectedTag !== "all" ||
+                          selectedDepartment !== "all") && (
                           <button
                             onClick={() => {
                               setSearchQuery("");
@@ -625,7 +686,8 @@ export default function Dashboard() {
 
                         {/* Results Count */}
                         <div className="ml-auto px-3 py-2 text-sm text-muted-foreground">
-                          {filteredPosts.length} {filteredPosts.length === 1 ? 'post' : 'posts'}
+                          {filteredPosts.length}{" "}
+                          {filteredPosts.length === 1 ? "post" : "posts"}
                         </div>
                       </div>
                     </div>
@@ -657,7 +719,7 @@ export default function Dashboard() {
                 {filteredPosts.length === 0 ? (
                   <Card>
                     <CardContent className="p-8 text-center text-muted-foreground">
-                      {posts.length === 0 
+                      {posts.length === 0
                         ? "No posts yet. Be the first to share something!"
                         : "No posts match your filters. Try adjusting your search."}
                     </CardContent>
@@ -843,7 +905,9 @@ export default function Dashboard() {
                         {/* Department Filter */}
                         <select
                           value={eventDepartmentFilter}
-                          onChange={(e) => setEventDepartmentFilter(e.target.value)}
+                          onChange={(e) =>
+                            setEventDepartmentFilter(e.target.value)
+                          }
                           className="px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                         >
                           <option value="all">All Departments</option>
@@ -855,7 +919,8 @@ export default function Dashboard() {
                         </select>
 
                         {/* Clear Filters */}
-                        {(eventSearchQuery || eventDepartmentFilter !== "all") && (
+                        {(eventSearchQuery ||
+                          eventDepartmentFilter !== "all") && (
                           <button
                             onClick={() => {
                               setEventSearchQuery("");
@@ -869,7 +934,8 @@ export default function Dashboard() {
 
                         {/* Results Count */}
                         <div className="ml-auto px-3 py-2 text-sm text-muted-foreground">
-                          {filteredEvents.length} {filteredEvents.length === 1 ? 'event' : 'events'}
+                          {filteredEvents.length}{" "}
+                          {filteredEvents.length === 1 ? "event" : "events"}
                         </div>
                       </div>
                     </div>
