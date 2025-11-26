@@ -695,17 +695,15 @@ export default function Dashboard() {
                 </Card>
 
                 {/* Create Post Button */}
-                <Card className="cursor-pointer hover:shadow-md transition-shadow">
-                  <CardContent
-                    className="p-6"
+                <div className="flex justify-start">
+                  <Button
                     onClick={() => setShowCreatePost(true)}
+                    className="flex items-center gap-2 cursor-pointer"
                   >
-                    <div className="flex items-center gap-3 text-muted-foreground">
-                      <Plus className="w-5 h-5" />
-                      <span>Share something with your peers...</span>
-                    </div>
-                  </CardContent>
-                </Card>
+                    <Plus className="w-4 h-4" />
+                    Create New Post
+                  </Button>
+                </div>
 
                 {/* New Post Modal */}
                 {showCreatePost && (

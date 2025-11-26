@@ -10,6 +10,7 @@ import {
   TrendingUp,
   MessageSquare,
   Plus,
+  Heart,
 } from "lucide-react";
 import NewEvent from "@/components/NewEvent";
 import { useState, useEffect, startTransition } from "react";
@@ -69,6 +70,38 @@ interface Event {
   updatedAt: string;
 }
 
+interface Post {
+  _id: string;
+  author: {
+    _id: string;
+    name: string;
+    department?: string;
+    year?: string;
+    avatarUrl?: string;
+  };
+  content: string;
+  imageUrl?: string;
+  tags?: string[];
+  likes: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface Comment {
+  _id: string;
+  post: string;
+  author: {
+    _id: string;
+    name: string;
+    department?: string;
+    year?: string;
+    avatarUrl?: string;
+  };
+  text: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export default function AdminDashboard() {
   const router = useRouter();
   const [admin, setAdmin] = useState<Admin | null>(null);
@@ -77,6 +110,7 @@ export default function AdminDashboard() {
   >("overview");
   const [events, setEvents] = useState<Event[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
   const [stats, setStats] = useState<Stats>({
@@ -142,6 +176,23 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchPosts = async () => {
+    try {
+      const token = localStorage.getItem("adminToken");
+      if (!token) return;
+
+      const response = await fetch("http://localhost:5000/api/posts", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await response.json();
+      setPosts(data.posts || []);
+    } catch (err) {
+      console.error("Fetch posts error:", err);
+    }
+  };
+
   const handleEventCreated = () => {
     // Refresh events list after creating new event
     fetchEvents();
@@ -200,7 +251,12 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (admin) {
       const loadData = async () => {
-        await Promise.all([fetchStats(), fetchEvents(), fetchUsers()]);
+        await Promise.all([
+          fetchStats(),
+          fetchEvents(),
+          fetchUsers(),
+          fetchPosts(),
+        ]);
       };
       loadData();
     }
@@ -552,12 +608,87 @@ export default function AdminDashboard() {
         {activeTab === "posts" && (
           <Card className="border-none shadow-md">
             <CardHeader>
-              <h3 className="text-lg font-semibold">Post Management</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">All Posts</h3>
+                <div className="text-sm text-muted-foreground">
+                  Total: {posts.length} posts
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">
-                Post management features coming soon...
-              </p>
+              {posts.length === 0 ? (
+                <p className="text-center py-8 text-muted-foreground">
+                  No posts found
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {posts.map((post) => (
+                    <Card key={post._id} className="border">
+                      <CardContent className="p-4">
+                        {/* Post Header */}
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                              <span className="text-primary font-semibold">
+                                {post.author?.name.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                            <div>
+                              <h4 className="font-semibold">
+                                {post.author?.name || "Unknown User"}
+                              </h4>
+                              <p className="text-sm text-muted-foreground">
+                                {post.author?.department && post.author?.year
+                                  ? `${post.author.department} - Year ${post.author.year}`
+                                  : post.author?.department || ""}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {new Date(post.createdAt).toLocaleString()}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Post Content */}
+                        <p className="whitespace-pre-wrap mb-3">
+                          {post.content}
+                        </p>
+
+                        {/* Post Image */}
+                        {post.imageUrl && (
+                          <img
+                            src={post.imageUrl}
+                            alt="Post image"
+                            className="rounded-md w-full max-h-96 object-cover mb-3"
+                          />
+                        )}
+
+                        {/* Post Tags */}
+                        {post.tags && post.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mb-3">
+                            {post.tags.map((tag, index) => (
+                              <span
+                                key={index}
+                                className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full"
+                              >
+                                #{tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Post Stats */}
+                        <div className="flex gap-6 pt-3 border-t text-sm text-muted-foreground">
+                          <div className="flex items-center gap-2">
+                            <Heart className="w-4 h-4" />
+                            <span>{post.likes.length} likes</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         )}

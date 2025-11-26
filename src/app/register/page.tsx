@@ -211,12 +211,22 @@ export default function SignupForm() {
                   <SelectValue placeholder="Select department" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="cs">Computer Science</SelectItem>
-                  <SelectItem value="ee">Electrical Engineering</SelectItem>
-                  <SelectItem value="me">Mechanical Engineering</SelectItem>
-                  <SelectItem value="ce">Civil Engineering</SelectItem>
-                  <SelectItem value="it">Information Technology</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                  <SelectItem value="Computer Science">
+                    Computer Science
+                  </SelectItem>
+                  <SelectItem value="Electrical Engineering">
+                    Electrical Engineering
+                  </SelectItem>
+                  <SelectItem value="Mechanical Engineering">
+                    Mechanical Engineering
+                  </SelectItem>
+                  <SelectItem value="Civil Engineering">
+                    Civil Engineering
+                  </SelectItem>
+                  <SelectItem value="Information Technology">
+                    Information Technology
+                  </SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -42,7 +42,8 @@ export default function NewPost({ onClose, onPostCreated }: NewPostProps) {
   const [content, setContent] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
-  const [tags, setTags] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -75,6 +76,20 @@ export default function NewPost({ onClose, onPostCreated }: NewPostProps) {
   const handleRemoveImage = () => {
     setImageFile(null);
     setImagePreview("");
+  };
+
+  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && tagInput.trim()) {
+      e.preventDefault();
+      if (!tags.includes(tagInput.trim())) {
+        setTags([...tags, tagInput.trim()]);
+      }
+      setTagInput("");
+    }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setTags(tags.filter((tag) => tag !== tagToRemove));
   };
 
   const uploadToImgBB = async (file: File): Promise<string> => {
@@ -138,17 +153,12 @@ export default function NewPost({ onClose, onPostCreated }: NewPostProps) {
         }
       }
 
-      const tagsArray = tags
-        .split(",")
-        .map((tag) => tag.trim())
-        .filter((tag) => tag !== "");
-
       const response = await axios.post(
         "http://localhost:5000/api/posts/newpost",
         {
           content: content.trim(),
           imageUrl: uploadedImageUrl,
-          tags: tagsArray.length > 0 ? tagsArray : [],
+          tags: tags,
         },
         {
           headers: {
@@ -175,8 +185,8 @@ export default function NewPost({ onClose, onPostCreated }: NewPostProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-2xl">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto mb-0">
+      <Card className="w-full max-w-2xl my-8">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <CardTitle>Create a Post</CardTitle>
           <Button
@@ -270,17 +280,37 @@ export default function NewPost({ onClose, onPostCreated }: NewPostProps) {
               <Label htmlFor="tags">
                 Tags <span className="text-muted-foreground">(Optional)</span>
               </Label>
+              <p className="text-xs text-muted-foreground">
+                Press enter to add a tag
+              </p>
               <Input
                 id="tags"
                 type="text"
-                placeholder="technology, programming, campus-life"
-                value={tags}
-                onChange={(e) => setTags(e.target.value)}
+                placeholder="Type a tag and press Enter"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={handleTagKeyDown}
                 disabled={isLoading}
               />
-              <p className="text-xs text-muted-foreground">
-                Separate multiple tags with commas
-              </p>
+              {tags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm"
+                    >
+                      #{tag}
+                      <button
+                        type="button"
+                        onClick={() => removeTag(tag)}
+                        className="hover:bg-primary/20 rounded-full p-0.5"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           </CardContent>
           <CardFooter className="flex justify-end gap-3">
