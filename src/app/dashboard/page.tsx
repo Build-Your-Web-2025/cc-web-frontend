@@ -263,12 +263,12 @@ export default function Dashboard() {
                         <div className="flex items-start justify-between">
                           <div>
                             <h3 className="font-semibold">
-                              {post.author.name}
+                              {post.author?.name || "Unknown User"}
                             </h3>
                             <p className="text-sm text-muted-foreground">
-                              {post.author.department && post.author.year
+                              {post.author?.department && post.author?.year
                                 ? `${post.author.department} - Year ${post.author.year}`
-                                : post.author.department || ""}
+                                : post.author?.department || ""}
                             </p>
                             <p className="text-xs text-muted-foreground mt-1">
                               {new Date(post.createdAt).toLocaleString()}
