@@ -26,7 +26,7 @@ export function Hero() {
           {/* Badge */}
           <div className="mb-8 inline-flex items-center rounded-full border bg-background px-4 py-1.5 text-sm font-medium shadow-sm">
             <span className="mr-2 h-2 w-2 rounded-full bg-green-500"></span>
-            Join 10,000+ students already connected
+            Built for Your Campus
           </div>
 
           {/* Main Headline */}
@@ -57,8 +57,8 @@ export function Hero() {
           {/* CTA Buttons */}
           <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Button size="lg" className="gap-2 text-base" asChild>
-              <Link href="/signup">
-                Get Started Free
+              <Link href="/register">
+                Get Started for Free
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>

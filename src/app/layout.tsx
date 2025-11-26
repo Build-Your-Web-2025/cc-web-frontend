@@ -4,6 +4,7 @@ import "./globals.css";
 
 import { Navbar } from "@/components/Navbar";
 import { Container } from "@/components/Container";
+import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,10 +33,8 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased relative`}
       >
         <div className="fixed inset-0 -z-10 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-size-[24px_24px]"></div>
-        <Container>
-          <Navbar />
-          {children}
-        </Container>
+        <Container>{children}</Container>
+        <Toaster />
       </body>
     </html>
   );
