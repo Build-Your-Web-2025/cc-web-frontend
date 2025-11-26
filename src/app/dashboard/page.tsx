@@ -39,6 +39,21 @@ interface Post {
   updatedAt: string;
 }
 
+interface Comment {
+  _id: string;
+  post: string;
+  author: {
+    _id: string;
+    name: string;
+    department?: string;
+    year?: string;
+    avatarUrl?: string;
+  };
+  text: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface Event {
   _id: string;
   title: string;
@@ -59,16 +74,65 @@ interface Event {
   updatedAt: string;
 }
 
+interface User {
+  _id: string;
+  name: string;
+  email: string;
+  department?: string;
+  year?: number;
+  bio?: string;
+  interests?: string[];
+  createdAt: string;
+}
+
+interface Admin {
+  _id: string;
+  name: string;
+  email: string;
+  department?: string;
+  designation?: string;
+  createdAt?: string;
+}
+
 export default function Dashboard() {
   const router = useRouter();
   const [showCreatePost, setShowCreatePost] = useState(false);
-  const [activeTab, setActiveTab] = useState<"posts" | "events">("posts");
+  const [activeTab, setActiveTab] = useState<"posts" | "events" | "profile">("posts");
   const [posts, setPosts] = useState<Post[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
+  const [comments, setComments] = useState<Record<string, Comment[]>>({});
+  const [newComment, setNewComment] = useState<Record<string, string>>({});
+  const [expandedPost, setExpandedPost] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | Admin | null>(null);
+  
+  // Search and filter states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTag, setSelectedTag] = useState<string>("all");
+  const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
+  const [eventSearchQuery, setEventSearchQuery] = useState("");
+  const [eventDepartmentFilter, setEventDepartmentFilter] = useState<string>("all");
 
   useEffect(() => {
     fetchPosts();
     fetchEvents();
+
+    // Get current user ID and data
+    const userData = localStorage.getItem("user");
+    const adminData = localStorage.getItem("admin");
+    if (userData) {
+      try {
+        const user = JSON.parse(userData);
+        setCurrentUserId(user._id || user.id);
+        setCurrentUser(user);
+      } catch {}
+    } else if (adminData) {
+      try {
+        const admin = JSON.parse(adminData);
+        setCurrentUserId(admin._id || admin.id);
+        setCurrentUser(admin);
+      } catch {}
+    }
   }, []);
 
   const fetchPosts = async () => {
@@ -167,6 +231,72 @@ export default function Dashboard() {
     }
   };
 
+  const fetchComments = async (postId: string) => {
+    try {
+      const token =
+        localStorage.getItem("token") || localStorage.getItem("adminToken");
+      if (!token) return;
+
+      const response = await axios.get(
+        `http://localhost:5000/api/posts/${postId}/comments`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setComments((prev) => ({ ...prev, [postId]: response.data }));
+    } catch (err) {
+      console.error("Fetch comments error:", err);
+    }
+  };
+
+  const handleAddComment = async (postId: string) => {
+    try {
+      const token =
+        localStorage.getItem("token") || localStorage.getItem("adminToken");
+      if (!token) {
+        toast.error("Please login to comment");
+        return;
+      }
+
+      const commentText = newComment[postId]?.trim();
+      if (!commentText) {
+        toast.error("Comment cannot be empty");
+        return;
+      }
+
+      await axios.post(
+        `http://localhost:5000/api/posts/${postId}/comments`,
+        { text: commentText },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setNewComment((prev) => ({ ...prev, [postId]: "" }));
+      fetchComments(postId);
+      toast.success("Comment added!");
+    } catch (err) {
+      console.error("Add comment error:", err);
+      toast.error("Failed to add comment");
+    }
+  };
+
+  const toggleComments = (postId: string) => {
+    if (expandedPost === postId) {
+      setExpandedPost(null);
+    } else {
+      setExpandedPost(postId);
+      if (!comments[postId]) {
+        fetchComments(postId);
+      }
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("adminToken");
@@ -174,6 +304,60 @@ export default function Dashboard() {
     toast.success("Logged out successfully");
     router.push("/login");
   };
+
+  // Filter posts based on search and filters
+  const filteredPosts = posts.filter((post) => {
+    const matchesSearch = 
+      post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      post.author?.name.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesTag = 
+      selectedTag === "all" || 
+      (post.tags && post.tags.includes(selectedTag));
+    
+    const matchesDepartment = 
+      selectedDepartment === "all" || 
+      post.author?.department === selectedDepartment;
+    
+    return matchesSearch && matchesTag && matchesDepartment;
+  });
+
+  // Filter events based on search and filters
+  const filteredEvents = events.filter((event) => {
+    const matchesSearch = 
+      event.title.toLowerCase().includes(eventSearchQuery.toLowerCase()) ||
+      event.description.toLowerCase().includes(eventSearchQuery.toLowerCase()) ||
+      (event.location && event.location.toLowerCase().includes(eventSearchQuery.toLowerCase()));
+    
+    const matchesDepartment = 
+      eventDepartmentFilter === "all" || 
+      event.department === eventDepartmentFilter;
+    
+    return matchesSearch && matchesDepartment;
+  });
+
+  // Get unique tags from posts
+  const allTags = Array.from(
+    new Set(posts.flatMap((post) => post.tags || []))
+  ).sort();
+
+  // Get unique departments from posts
+  const allDepartments = Array.from(
+    new Set(
+      posts
+        .map((post) => post.author?.department)
+        .filter((dept): dept is string => Boolean(dept))
+    )
+  ).sort();
+
+  // Get unique departments from events
+  const eventDepartments = Array.from(
+    new Set(
+      events
+        .map((event) => event.department)
+        .filter((dept): dept is string => Boolean(dept))
+    )
+  ).sort();
 
   return (
     <div className="min-h-screen py-8">
@@ -221,13 +405,233 @@ export default function Dashboard() {
           >
             Events
           </button>
+          <button
+            onClick={() => setActiveTab("profile")}
+            className={`pb-3 px-4 font-medium transition-colors ${
+              activeTab === "profile"
+                ? "border-b-2 border-primary text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Profile
+          </button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {activeTab === "posts" ? (
+            {activeTab === "profile" ? (
+              /* Profile Section */
+              <Card>
+                <CardHeader>
+                  <h2 className="text-2xl font-bold">Profile Information</h2>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {currentUser ? (
+                    <>
+                      {/* Profile Avatar */}
+                      <div className="flex items-center gap-4">
+                        <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center">
+                          <span className="text-3xl font-bold text-primary">
+                            {currentUser.name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-semibold">{currentUser.name}</h3>
+                          <p className="text-muted-foreground">{currentUser.email}</p>
+                        </div>
+                      </div>
+
+                      <Separator />
+
+                      {/* Basic Information */}
+                      <div className="space-y-4">
+                        <h4 className="font-semibold text-lg">Basic Information</h4>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-sm text-muted-foreground">Name</p>
+                            <p className="font-medium">{currentUser.name}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Email</p>
+                            <p className="font-medium">{currentUser.email}</p>
+                          </div>
+                          {currentUser.department && (
+                            <div>
+                              <p className="text-sm text-muted-foreground">Department</p>
+                              <p className="font-medium">{currentUser.department}</p>
+                            </div>
+                          )}
+                          {"year" in currentUser && currentUser.year && (
+                            <div>
+                              <p className="text-sm text-muted-foreground">Year</p>
+                              <p className="font-medium">Year {currentUser.year}</p>
+                            </div>
+                          )}
+                          {"designation" in currentUser && currentUser.designation && (
+                            <div>
+                              <p className="text-sm text-muted-foreground">Designation</p>
+                              <p className="font-medium">{currentUser.designation}</p>
+                            </div>
+                          )}
+                          <div>
+                            <p className="text-sm text-muted-foreground">Member Since</p>
+                            <p className="font-medium">
+                              {new Date(currentUser.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Bio Section */}
+                      {"bio" in currentUser && currentUser.bio && (
+                        <>
+                          <Separator />
+                          <div>
+                            <h4 className="font-semibold text-lg mb-2">Bio</h4>
+                            <p className="text-muted-foreground">{currentUser.bio}</p>
+                          </div>
+                        </>
+                      )}
+
+                      {/* Interests Section */}
+                      {"interests" in currentUser && currentUser.interests && currentUser.interests.length > 0 && (
+                        <>
+                          <Separator />
+                          <div>
+                            <h4 className="font-semibold text-lg mb-3">Interests</h4>
+                            <div className="flex flex-wrap gap-2">
+                              {currentUser.interests.map((interest, idx) => (
+                                <span
+                                  key={idx}
+                                  className="px-3 py-1 rounded-full bg-primary/10 text-primary text-sm"
+                                >
+                                  {interest}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      {/* Activity Stats */}
+                      <Separator />
+                      <div>
+                        <h4 className="font-semibold text-lg mb-3">Activity</h4>
+                        <div className="grid grid-cols-3 gap-4 text-center">
+                          <div className="p-4 bg-gray-50 rounded-lg">
+                            <div className="text-2xl font-bold text-primary">
+                              {posts.filter(p => p.author?._id === currentUserId).length}
+                            </div>
+                            <div className="text-sm text-muted-foreground">Posts</div>
+                          </div>
+                          <div className="p-4 bg-gray-50 rounded-lg">
+                            <div className="text-2xl font-bold text-primary">
+                              {posts.reduce((acc, post) => 
+                                acc + (post.likes.includes(currentUserId || "") ? 1 : 0), 0
+                              )}
+                            </div>
+                            <div className="text-sm text-muted-foreground">Likes Given</div>
+                          </div>
+                          <div className="p-4 bg-gray-50 rounded-lg">
+                            <div className="text-2xl font-bold text-primary">
+                              {events.filter(e => e.rsvps.includes(currentUserId || "")).length}
+                            </div>
+                            <div className="text-sm text-muted-foreground">Events RSVP</div>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-center text-muted-foreground py-8">
+                      Loading profile...
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            ) : activeTab === "posts" ? (
               <>
+                {/* Search and Filter Section */}
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="space-y-4">
+                      {/* Search Input */}
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Search posts by content or author..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="w-full px-4 py-2 pl-10 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                        />
+                        <svg
+                          className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                          />
+                        </svg>
+                      </div>
+
+                      {/* Filters */}
+                      <div className="flex flex-wrap gap-3">
+                        {/* Tag Filter */}
+                        <select
+                          value={selectedTag}
+                          onChange={(e) => setSelectedTag(e.target.value)}
+                          className="px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                        >
+                          <option value="all">All Tags</option>
+                          {allTags.map((tag) => (
+                            <option key={tag} value={tag}>
+                              #{tag}
+                            </option>
+                          ))}
+                        </select>
+
+                        {/* Department Filter */}
+                        <select
+                          value={selectedDepartment}
+                          onChange={(e) => setSelectedDepartment(e.target.value)}
+                          className="px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                        >
+                          <option value="all">All Departments</option>
+                          {allDepartments.map((dept) => (
+                            <option key={dept} value={dept}>
+                              {dept}
+                            </option>
+                          ))}
+                        </select>
+
+                        {/* Clear Filters */}
+                        {(searchQuery || selectedTag !== "all" || selectedDepartment !== "all") && (
+                          <button
+                            onClick={() => {
+                              setSearchQuery("");
+                              setSelectedTag("all");
+                              setSelectedDepartment("all");
+                            }}
+                            className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            Clear Filters
+                          </button>
+                        )}
+
+                        {/* Results Count */}
+                        <div className="ml-auto px-3 py-2 text-sm text-muted-foreground">
+                          {filteredPosts.length} {filteredPosts.length === 1 ? 'post' : 'posts'}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
                 {/* Create Post Button */}
                 <Card className="cursor-pointer hover:shadow-md transition-shadow">
                   <CardContent
@@ -250,14 +654,16 @@ export default function Dashboard() {
                 )}
 
                 {/* Posts Feed */}
-                {posts.length === 0 ? (
+                {filteredPosts.length === 0 ? (
                   <Card>
                     <CardContent className="p-8 text-center text-muted-foreground">
-                      No posts yet. Be the first to share something!
+                      {posts.length === 0 
+                        ? "No posts yet. Be the first to share something!"
+                        : "No posts match your filters. Try adjusting your search."}
                     </CardContent>
                   </Card>
                 ) : (
-                  posts.map((post) => (
+                  filteredPosts.map((post) => (
                     <Card key={post._id}>
                       <CardHeader>
                         <div className="flex items-start justify-between">
@@ -299,18 +705,103 @@ export default function Dashboard() {
                         )}
                       </CardContent>
                       <Separator />
-                      <CardFooter className="pt-4 flex gap-4">
-                        <button
-                          onClick={() => handleLike(post._id)}
-                          className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
-                        >
-                          <Heart className="w-5 h-5" />
-                          <span>{post.likes.length}</span>
-                        </button>
-                        <button className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors">
-                          <MessageCircle className="w-5 h-5" />
-                          <span>0</span>
-                        </button>
+                      <CardFooter className="pt-4 flex flex-col gap-4">
+                        <div className="flex gap-4 w-full">
+                          <button
+                            onClick={() => handleLike(post._id)}
+                            className="flex items-center gap-2 text-muted-foreground hover:text-red-500 transition-colors"
+                          >
+                            <Heart
+                              className={`w-5 h-5 ${
+                                currentUserId &&
+                                post.likes.includes(currentUserId)
+                                  ? "fill-red-500 text-red-500"
+                                  : ""
+                              }`}
+                            />
+                            <span>{post.likes.length}</span>
+                          </button>
+                          <button
+                            onClick={() => toggleComments(post._id)}
+                            className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
+                          >
+                            <MessageCircle className="w-5 h-5" />
+                            <span>{comments[post._id]?.length || 0}</span>
+                          </button>
+                        </div>
+
+                        {/* Comments Section */}
+                        {expandedPost === post._id && (
+                          <div className="w-full space-y-3 border-t pt-4">
+                            {/* Add Comment */}
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                placeholder="Write a comment..."
+                                value={newComment[post._id] || ""}
+                                onChange={(e) =>
+                                  setNewComment((prev) => ({
+                                    ...prev,
+                                    [post._id]: e.target.value,
+                                  }))
+                                }
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleAddComment(post._id);
+                                  }
+                                }}
+                                className="flex-1 px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                              />
+                              <Button
+                                size="sm"
+                                onClick={() => handleAddComment(post._id)}
+                              >
+                                Post
+                              </Button>
+                            </div>
+
+                            {/* Comments List */}
+                            <div className="space-y-3 max-h-80 overflow-y-auto">
+                              {comments[post._id]?.length === 0 ? (
+                                <p className="text-sm text-muted-foreground text-center py-4">
+                                  No comments yet. Be the first to comment!
+                                </p>
+                              ) : (
+                                comments[post._id]?.map((comment) => (
+                                  <div
+                                    key={comment._id}
+                                    className="flex gap-2 p-3 bg-gray-50 rounded-md"
+                                  >
+                                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                      <span className="text-xs font-semibold text-primary">
+                                        {comment.author?.name
+                                          ?.charAt(0)
+                                          .toUpperCase() || "?"}
+                                      </span>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-baseline gap-2">
+                                        <span className="font-semibold text-sm">
+                                          {comment.author?.name ||
+                                            "Unknown User"}
+                                        </span>
+                                        <span className="text-xs text-muted-foreground">
+                                          {new Date(
+                                            comment.createdAt
+                                          ).toLocaleString()}
+                                        </span>
+                                      </div>
+                                      <p className="text-sm mt-1 whitespace-pre-wrap wrap-break-word">
+                                        {comment.text}
+                                      </p>
+                                    </div>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </CardFooter>
                     </Card>
                   ))
@@ -319,14 +810,82 @@ export default function Dashboard() {
             ) : (
               /* Events List */
               <div className="space-y-6">
-                {events.length === 0 ? (
+                {/* Search and Filter Section for Events */}
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="space-y-4">
+                      {/* Search Input */}
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Search events by title, description, or location..."
+                          value={eventSearchQuery}
+                          onChange={(e) => setEventSearchQuery(e.target.value)}
+                          className="w-full px-4 py-2 pl-10 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                        />
+                        <svg
+                          className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                          />
+                        </svg>
+                      </div>
+
+                      {/* Filters */}
+                      <div className="flex flex-wrap gap-3">
+                        {/* Department Filter */}
+                        <select
+                          value={eventDepartmentFilter}
+                          onChange={(e) => setEventDepartmentFilter(e.target.value)}
+                          className="px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                        >
+                          <option value="all">All Departments</option>
+                          {eventDepartments.map((dept) => (
+                            <option key={dept} value={dept}>
+                              {dept}
+                            </option>
+                          ))}
+                        </select>
+
+                        {/* Clear Filters */}
+                        {(eventSearchQuery || eventDepartmentFilter !== "all") && (
+                          <button
+                            onClick={() => {
+                              setEventSearchQuery("");
+                              setEventDepartmentFilter("all");
+                            }}
+                            className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            Clear Filters
+                          </button>
+                        )}
+
+                        {/* Results Count */}
+                        <div className="ml-auto px-3 py-2 text-sm text-muted-foreground">
+                          {filteredEvents.length} {filteredEvents.length === 1 ? 'event' : 'events'}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {filteredEvents.length === 0 ? (
                   <Card>
                     <CardContent className="p-8 text-center text-muted-foreground">
-                      No events available at the moment.
+                      {events.length === 0
+                        ? "No events available at the moment."
+                        : "No events match your filters. Try adjusting your search."}
                     </CardContent>
                   </Card>
                 ) : (
-                  events.map((event) => {
+                  filteredEvents.map((event) => {
                     const userId = JSON.parse(
                       localStorage.getItem("user") || "{}"
                     )?._id;
